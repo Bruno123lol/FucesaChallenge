@@ -39,4 +39,4 @@ Al iniciar el programa carga los valores de un archivo csv y al finalizar el pro
 
 1.	Entrar a la carpeta “release” para descargar los archivos “bugwiki.exe” y “bugwiki.csv”.
 2.	Una vez descargados dar doble click o ejecutar el archivo “bugwiki.exe”.
-    _ Se abrirá una línea de comandos en la que podrá hacer uso del programa como está explicado anteriormente
+    - Se abrirá una línea de comandos en la que podrá hacer uso del programa como está explicado anteriormente
