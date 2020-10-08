@@ -33,7 +33,9 @@ struct Record {
 }
 
 /**
- * 
+ * Implementación de dos inicializadores para la estructura Bug
+ * El primero recibe variables de tipo &str
+ * El segundo recibe variables de tipo String
  */
 impl Bug{
     fn new(species: &str, description: &str) -> Bug {
@@ -51,6 +53,13 @@ impl Bug{
     }
 }
 
+/**
+ * Función para añadir los elementos a la tabla
+ * Recibe 3 parámetros: 
+ *  @command Vector de strings, con el input del usuario separado por comillas
+ *  @whites_vector Vector de strings, con el input del usuario separado por espacios en blanco
+ *  @bugs HashMap, con las llaves de tipo String y contiene un elemento de tipo Bug
+ */
 fn create(command: Vec<&str>, whites_vector: Vec<&str>, bugs: &mut HashMap<String, Bug>){
     if command.len() !=7 {
         error("",1);
@@ -69,6 +78,13 @@ fn create(command: Vec<&str>, whites_vector: Vec<&str>, bugs: &mut HashMap<Strin
     bugs.insert(id,Bug::new(command[3], command[5]));
 }
 
+/**
+ * Función para mostar elementos específicos de la tabla
+ * Recibe 3 parámetros: 
+ *  @id Identificador del elemento
+ *  @len Longitud del comando proporcionado por el usuario
+ *  @bugs HashMap, con las llaves de tipo String y contiene un elemento de tipo Bug
+ */
 fn show(id: String, len: usize, bugs: &mut HashMap<String, Bug>){
     if len !=3 {
         error("",1);
@@ -87,6 +103,13 @@ fn show(id: String, len: usize, bugs: &mut HashMap<String, Bug>){
     }
 }
 
+/**
+ * Función para actualizar valores de elementos específicos de la tabla
+ * Puede actualizar la especie y la descripción o cualquiera de las 2
+ * Recibe 2 parámetros: 
+ *  @command Vector de strings, con el input del usuario separado por comillas
+ *  @bugs HashMap, con las llaves de tipo String y contiene un elemento de tipo Bug
+ */
 fn update(command: Vec<&str>, bugs: &mut HashMap<String, Bug>){
     if command.len() !=5{
         if command.len() !=7 {
@@ -169,6 +192,11 @@ fn delete(command: Vec<&str>, whites_vector: Vec<&str>, bugs: &mut HashMap<Strin
     bugs.remove(&id);
 }
 
+/**
+ * Función para cargar los registros de un archivo csv a la tabla, en caso de error, lo devuelve
+ * Recibe 1 parámetro:
+ *  @bugs HashMap, con las llaves de tipo String y contiene un elemento de tipo Bug
+ */
 fn charge_csv_file(bugs: &mut HashMap<String, Bug>) -> Result<(), Box<dyn Error>>{
     let mut rdr = csv::Reader::from_path("bugs.csv")?;
     for result in rdr.deserialize() {
@@ -178,6 +206,11 @@ fn charge_csv_file(bugs: &mut HashMap<String, Bug>) -> Result<(), Box<dyn Error>
     Ok(())
 }
 
+/**
+ * Función para cargar los valores de la tabla a los registros de un archivo csv, en caso de error, lo devuelve
+ * Recibe 1 parámetro:
+ *  @bugs HashMap, con las llaves de tipo String y contiene un elemento de tipo Bug
+ */
 fn write_csv_file(bugs: &mut HashMap<String, Bug>) -> Result<(), Box<dyn Error>> {
     let mut wtr = csv::Writer::from_path("bugs.csv")?;
     wtr.write_record(&["Id", "Species", "Description"])?;
@@ -209,44 +242,67 @@ fn error(desc: &str, opt: i32){
     println!("Escriba '--help' para obtener más información.\n")
 }
 
-//completar descripciones de cada opción
+/**
+ * Función para imprimir un pequeño manual de usuario
+ */
 fn help(){
-    println!("Program to store information about bugs and manage such information\n");
-    println!("\nOPTIONS:");
-    println!("\tcreate --id <ID> --species <SPECIES> --description <DESCRIPTION>");
-    println!("\tshow <ID>");
-    println!("\tupdate <ID> [--description <DESCRIPTION> || --species <SPECIES>]");
-    println!("\tdelete --id <ID>\n\n");
+    println!("Programa para almacenar y manejar la información sobre bichos.\n");
+    println!("Al iniciar el programa carga los valores de un archivo csv y al finalizar el programa guarda los valores en el mismo\n");
+    println!("\nOPCIONES:");
+    println!("\tcreate --id <ID> --species <SPECIES> --description <DESCRIPTION>\n");
+    println!("\t\tFunción para añadir los elementos a la tabla\n");
+    println!("\t\tLos valores de cada atributo deben estar entre comillas\n");
+    println!("\t\tEjemplo: create --id \"XXXX\" --species \"Ejemplo\" --description \"Ejemplo de descripción\"\n");
+    println!("\tshow <ID>\n");
+    println!("\t\tFunción para mostar elementos específicos de la tabla\n");
+    println!("\t\tEl valor del identificador debe estar entre comillas\n");
+    println!("\t\tEjemplo: show \"XXXX\"\n");
+    println!("\tupdate <ID> [--description <DESCRIPTION> || --species <SPECIES>]\n");
+    println!("\t\tFunción para actualizar valores de elementos específicos de la tabla\n");
+    println!("\t\tLos valores de cada atributo deben estar entre comillas\n");
+    println!("\t\tEjemplos:\n");
+    println!("\t\t           update \"XXXX\" --description \"Nueva Descripción\"\n");
+    println!("\t\t           update \"XXXX\" --especie \"Nueva especie\"\n");
+    println!("\t\t           update \"XXXX\" --description \"Nueva Descripción\" --especie \"Nueva especie\"\n");
+    println!("\t\t           update \"XXXX\" --especie \"Nueva especie\" --description \"Nueva Descripción\"\n");
+    println!("\tdelete --id <ID>\n");
+    println!("\t\tFunción para borrar elementos específicos de la tabla\n");
+    println!("\t\tEl valor del identificador debe estar entre comillas\n");
+    println!("\t\tEjemplo: delete --id \"XXXX\"\n");
+    println!("\texit\n");
+    println!("\t\tFunción para terminar el programa, también se puede presionar \"Enter\" para salir.\n");
 }
 
 fn main() {
     let mut bugs: HashMap<String,Bug> = HashMap::new();
     
+    //cargar datos del archivo
     if let Err(err) = charge_csv_file(&mut bugs) {
         println!("{}", err);
     }
-    //Agregar funcionalida de carga de archivo
+    println!("\nEscriba \"exit\" para terminar el programa o también puede presionar \"Enter\" para salir.\n");
     let mut command = String::new();
+    //inicio del ciclo del CLI
     loop {
         print!("> bugwiki ");
         stdout().flush().expect("flush fallido");
         stdin().read_line(&mut command).expect("lectura fallida");
 
-        let whites_vector: Vec<&str> = command.trim().split(" ").collect();
-        let commas_vector: Vec<&str> = command.trim().split('"').collect();
+        let whites_vector: Vec<&str> = command.trim().split(" ").collect(); //Para obtener los primeros comandos
+        let commas_vector: Vec<&str> = command.trim().split('"').collect(); //Para obtener los valores de cada atributo
         
-        if whites_vector[0] == "exit" || command.trim().is_empty(){
-            if let Err(err) = write_csv_file(&mut bugs) {
+        if whites_vector[0] == "exit" || command.trim().is_empty(){ //comando para salir del programa
+            if let Err(err) = write_csv_file(&mut bugs) { //guardar en el archivo
                 println!("{}", err);
             }
             break;
         }
-        if whites_vector.len() < 2 && whites_vector[0] != "--help"{
+        if whites_vector.len() < 2 && whites_vector[0] != "--help"{ //primer filtro
             error("", 1);
             command.clear();
             continue;
         }
-        match whites_vector[0]{
+        match whites_vector[0]{ //llamar a la función correspondiente a cada comando
             "create" => create(commas_vector, whites_vector, &mut bugs),
             "show" => show(String::from(commas_vector[1]), commas_vector.len(), &mut bugs),
             "update" => update(commas_vector, &mut bugs),
@@ -255,7 +311,7 @@ fn main() {
             _ => error("",3),
         }
 
-        command.clear();
+        command.clear(); //limpieza de la variable con el comando
     }
 }
 
