@@ -1,18 +1,52 @@
-extern crate clap;
+extern crate csv;
+extern crate serde;
+
+#[macro_use]
+extern crate serde_derive;
 use std::io::{stdin,stdout,Write};
 use std::collections::HashMap;
+use std::error::Error;
 
+/**
+ * Estructura para almacenar la información de los bichos:
+ *  species
+ *  description
+ */
 #[derive(Hash, Eq, PartialEq, Debug)]
 struct Bug{
     species: String,
     description: String,
 }
 
+/**
+ * Estructura para deserializar la información del archivo en forma de strings:
+ *  id
+ *  species
+ *  description
+ */
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+struct Record {
+    id: String,
+    species: String,
+    description: String,
+}
+
+/**
+ * 
+ */
 impl Bug{
     fn new(species: &str, description: &str) -> Bug {
         Bug {
             species: species.to_string(),
             description: description.to_string(),
+        }
+    }
+
+    fn new2(species: String, description: String) -> Bug {
+        Bug {
+            species: species,
+            description: description,
         }
     }
 }
@@ -67,7 +101,6 @@ fn update(command: Vec<&str>, bugs: &mut HashMap<String, Bug>){
      * opt = 4 cambiar descripcion y especies
      */
     let mut _opt = 1;
-    
     if command[2].trim() != "--species" && command.len() == 5{
         _opt = 2;
         if command[2].trim() != "--description"{
@@ -75,12 +108,14 @@ fn update(command: Vec<&str>, bugs: &mut HashMap<String, Bug>){
             return
         }
     } else {
-        _opt =3;
-        if command[2].trim() != "--species" || command[4].trim() != "--description"{
-            _opt = 4;
-            if command[4].trim() != "--species" || command[2].trim() != "--description"{
-                error("",2);
-                return;
+        if command.len() == 7{
+            _opt =3;
+            if command[2].trim() != "--species" || command[4].trim() != "--description"{
+                _opt = 4;
+                if command[4].trim() != "--species" || command[2].trim() != "--description"{
+                    error("",2);
+                    return;
+                }
             }
         }
     }
@@ -109,6 +144,7 @@ fn update(command: Vec<&str>, bugs: &mut HashMap<String, Bug>){
 
     bugs.insert(id, new_bug);
 }
+
 /**
  * Función para borrar elementos de la tabla
  * Recibe 3 parámetros: 
@@ -132,6 +168,26 @@ fn delete(command: Vec<&str>, whites_vector: Vec<&str>, bugs: &mut HashMap<Strin
     } 
     bugs.remove(&id);
 }
+
+fn charge_csv_file(bugs: &mut HashMap<String, Bug>) -> Result<(), Box<dyn Error>>{
+    let mut rdr = csv::Reader::from_path("bugs.csv")?;
+    for result in rdr.deserialize() {
+        let record: Record = result?;
+        bugs.insert(record.id, Bug::new2(record.species, record.description));
+    }
+    Ok(())
+}
+
+fn write_csv_file(bugs: &mut HashMap<String, Bug>) -> Result<(), Box<dyn Error>> {
+    let mut wtr = csv::Writer::from_path("bugs.csv")?;
+    wtr.write_record(&["Id", "Species", "Description"])?;
+    for (key, bug) in bugs{
+        wtr.write_record(&[key,&bug.species,&bug.description])?;
+    }
+    wtr.flush()?;
+    Ok(())
+}
+
 /**
  * Función para imprimir los errores más comunes a la terminal
  * Recibe como parametros:
@@ -165,11 +221,13 @@ fn help(){
 
 fn main() {
     let mut bugs: HashMap<String,Bug> = HashMap::new();
-
+    
+    if let Err(err) = charge_csv_file(&mut bugs) {
+        println!("{}", err);
+    }
     //Agregar funcionalida de carga de archivo
     let mut command = String::new();
     loop {
-        
         print!("> bugwiki ");
         stdout().flush().expect("flush fallido");
         stdin().read_line(&mut command).expect("lectura fallida");
@@ -178,9 +236,12 @@ fn main() {
         let commas_vector: Vec<&str> = command.trim().split('"').collect();
         
         if whites_vector[0] == "exit" || command.trim().is_empty(){
+            if let Err(err) = write_csv_file(&mut bugs) {
+                println!("{}", err);
+            }
             break;
         }
-        if whites_vector.len() < 2{
+        if whites_vector.len() < 2 && whites_vector[0] != "--help"{
             error("", 1);
             command.clear();
             continue;
@@ -191,7 +252,7 @@ fn main() {
             "update" => update(commas_vector, &mut bugs),
             "delete" => delete(commas_vector, whites_vector, &mut bugs),
             "--help" => help(),
-            _ => {println!("{:?}",whites_vector); println!("{:?}",commas_vector); error("",3)}
+            _ => error("",3),
         }
 
         command.clear();
@@ -205,4 +266,6 @@ update "2X3t" --description "Latrodectus mactans was first described by Johan Ch
 update "2X3t" --species "lalala" --description "Latrodectus mactans was first described by Johan Christian Fabricius in 1775, placing it in the genus Aranea."
 update "2X3t" --description "Latrodectus mactans was first described by Johan Christian Fabricius in 1775, placing it in the genus Aranea. Holi" --species "lalala2"
 delete --id "2X3t"
+--help
+exit
 */
